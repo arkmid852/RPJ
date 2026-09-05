@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RPJ Gestão de O.S.</title>
+<style>
+:root{--red:#e11d2e;--dark:#111827;--muted:#6b7280;--bg:#f3f4f6;--card:#fff;--line:#e5e7eb;--green:#15803d;--amber:#b45309}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:#111827}
+button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+.login{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#111827,#2b1115)}
+.login-card{width:min(430px,100%);background:#fff;border-radius:20px;padding:28px;box-shadow:0 25px 70px #0006;text-align:center}
+.logo{width:100%;max-width:320px;max-height:150px;object-fit:contain;border-radius:10px;background:#000;margin-bottom:16px}
+h1,h2,h3{margin:0 0 12px}.muted{color:var(--muted);font-size:13px}
+.form{display:grid;gap:12px;text-align:left}.field{display:grid;gap:6px}.field label{font-weight:700;font-size:13px}
+input,select,textarea{width:100%;border:1px solid #d1d5db;border-radius:9px;padding:10px 11px;background:#fff;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--red);box-shadow:0 0 0 3px #e11d2e18}
+textarea{min-height:90px;resize:vertical}.btn{border:0;border-radius:9px;padding:10px 14px;font-weight:700}.primary{background:var(--red);color:#fff}.secondary{background:#111827;color:#fff}.light{background:#eef0f3;color:#111827}.danger{background:#fee2e2;color:#991b1b}.success{background:#dcfce7;color:#166534}
+.app{min-height:100vh}.topbar{height:64px;background:#111827;color:#fff;display:flex;align-items:center;gap:18px;padding:8px 18px;position:sticky;top:0;z-index:10}.topbar img{height:48px;width:120px;object-fit:contain;background:#000;border-radius:5px}.topbar .spacer{flex:1}.topbar button{background:#374151;color:#fff;border:0;border-radius:8px;padding:9px 12px}
+.layout{display:grid;grid-template-columns:235px 1fr;min-height:calc(100vh - 64px)}.sidebar{background:#fff;border-right:1px solid var(--line);padding:15px;display:flex;flex-direction:column;gap:7px}.nav{width:100%;text-align:left;border:0;background:transparent;padding:11px;border-radius:8px;font-weight:700}.nav.active,.nav:hover{background:#fee2e2;color:#991b1b}
+.content{padding:22px;max-width:1500px;width:100%;margin:auto}.page-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.actions{display:flex;gap:8px;flex-wrap:wrap}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}.stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px}.stat b{font-size:28px;display:block;margin-top:4px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:11px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;font-size:13px}.table th{background:#f9fafb;position:sticky;top:0}.tag{display:inline-block;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800}.tag.open{background:#dbeafe;color:#1d4ed8}.tag.ready{background:#dcfce7;color:#166534}.tag.cancel{background:#fee2e2;color:#991b1b}.tag.wait{background:#fef3c7;color:#92400e}
+.modal{position:fixed;inset:0;background:#0008;display:grid;place-items:center;padding:18px;z-index:30}.modal-card{background:#fff;width:min(1000px,100%);max-height:92vh;overflow:auto;border-radius:16px;padding:20px}.modal-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:15px}.close{border:0;background:#eee;border-radius:50%;width:34px;height:34px;font-size:20px}
+.kpi{font-size:12px;color:var(--muted)}.total{font-size:24px;font-weight:900}.empty{text-align:center;padding:30px;color:var(--muted)}
+.toast{position:fixed;right:18px;bottom:18px;background:#111827;color:#fff;padding:12px 15px;border-radius:9px;z-index:100;box-shadow:0 8px 25px #0003}
+.print-preview{font-family:Arial,sans-serif;color:#000;background:#fff;padding:15px}.print-head{display:flex;align-items:center;gap:15px;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:12px}.print-head img{width:180px;max-height:85px;object-fit:contain;background:#000}.print-title{font-size:20px;font-weight:800}.print-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}.print-row{border:1px solid #aaa;padding:7px}.print-label{font-size:10px;text-transform:uppercase;font-weight:700}.print-value{font-size:13px;margin-top:3px}.print-section{border:1px solid #aaa;margin-top:8px;padding:8px}.print-total{text-align:right;font-size:18px;font-weight:800;margin-top:10px}.signature{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:35px}.signature div{border-top:1px solid #000;text-align:center;padding-top:5px;font-size:11px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{display:none}.cards{grid-template-columns:repeat(2,1fr)}.grid3,.grid4{grid-template-columns:1fr 1fr}.content{padding:14px}}
+@media(max-width:600px){.cards,.grid2,.grid3,.grid4{grid-template-columns:1fr}.topbar .user{display:none}}
+@media print{
+ body{background:#fff}.no-print{display:none!important}.print-preview{padding:0}
+ body.print-a4 .print-preview{width:190mm}.print-preview img{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+ body.print-thermal .print-preview{width:72mm;font-size:11px}.print-thermal .print-head{display:block}.print-thermal .print-head img{width:70mm;max-height:35mm}.print-thermal .print-grid{display:block}.print-thermal .print-row{margin-bottom:4px}.print-thermal .signature{display:block}.print-thermal .signature div{margin-top:35px}
+}
+</style>
+</head>
+<body>
+<div id="login" class="login">
+  <div class="login-card">
+    <img class="logo" src="assets/logo-rpj.jpeg" alt="RPJ">
+    <h1>Gestão de O.S.</h1><p class="muted">Assistência técnica — computador, celular, notebook e videogame</p>
+    <form id="loginForm" class="form" style="margin-top:18px">
+      <div class="field"><label>Usuário</label><input id="loginUser" autocomplete="username" required></div>
+      <div class="field"><label>Senha</label><input id="loginPass" type="password" autocomplete="current-password" required></div>
+      <button class="btn primary">Entrar</button>
+      <div id="loginError" class="muted" style="color:#b91c1c;text-align:center"></div>
+    </form>
+    <p class="muted" style="margin-top:18px">Primeiro acesso: <b>RPJ</b> / <b>1234</b></p>
+  </div>
+</div>
+
+<div id="app" class="app hidden">
+<header class="topbar">
+  <img src="assets/logo-rpj.jpeg" alt="RPJ"><b>RPJ Gestão de O.S.</b><span class="spacer"></span><span class="user" id="currentUser"></span><button onclick="logout()">Sair</button>
+</header>
+<div class="layout">
+<aside class="sidebar">
+  <button class="nav active" data-page="dashboard">📊 Dashboard</button>
+  <button class="nav" data-page="orders">🧾 Ordens de Serviço</button>
+  <button class="nav" data-page="clients">👥 Clientes</button>
+  <button class="nav" data-page="devices">📱 Aparelhos</button>
+  <button class="nav" data-page="users">🔐 Usuários</button>
+  <button class="nav" data-page="backup">💾 Backup / Dados</button>
+</aside>
+<main class="content" id="content"></main>
+</div></div>
+
+<div id="modal" class="modal hidden"><div class="modal-card" id="modalCard"></div></div>
+<div id="toast" class="toast hidden"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// CONFIGURAÇÃO SUPABASE — substitua pelos dados do seu projeto.
+const SUPABASE_URL = window.RPJ_SUPABASE_URL || 'https://syfuavljlohogjzulrlz.supabase.co';
+const SUPABASE_ANON_KEY = window.RPJ_SUPABASE_ANON_KEY || 'sb_publishable_adtGtwhW1xJErBwCy5-Mpg_K-qgqb3k';
+const SUPABASE_READY = !SUPABASE_URL.includes('COLOQUE_AQUI') && !SUPABASE_ANON_KEY.includes('COLOQUE_AQUI');
+const sb = SUPABASE_READY ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const KEY='rpj_gestao_os_v6';
+let state={users:[],clients:[],devices:[],orders:[],seq:1000};
+let currentUser=null, currentPage='dashboard', editing=null;
+let cloudReady=false;
+
+function uid(){
+  if(window.crypto && typeof window.crypto.randomUUID==='function') return window.crypto.randomUUID();
+  return 'rpj-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
+}
+function localCache(){ try { localStorage.setItem(KEY,JSON.stringify(state)); } catch(e){} }
+function normalizeState(x){
+  x=x&&typeof x==='object'?x:{};
+  if(!Array.isArray(x.users)) x.users=[]; if(!Array.isArray(x.clients)) x.clients=[];
+  if(!Array.isArray(x.devices)) x.devices=[]; if(!Array.isArray(x.orders)) x.orders=[];
+  if(!Number.isFinite(Number(x.seq))) x.seq=1000;
+  return x;
+}
+function seedAdmin(){
+  if(!state.users.some(u=>String(u.user||'').toLowerCase()==='rpj'))
+    state.users.unshift({id:uid(),user:'RPJ',name:'RPJ',role:'Administrador'});
+}
+async function cloudLoad(){
+  if(!SUPABASE_READY){
+    try { state=normalizeState(JSON.parse(localStorage.getItem(KEY)||'null')); } catch(e){ state=normalizeState(null); }
+    seedAdmin(); localCache(); return;
+  }
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session) return;
+  const {data,error}=await sb.from('rpj_state').select('data').eq('id','main').maybeSingle();
+  if(error) throw error;
+  if(data && data.data) state=normalizeState(data.data); else { state=normalizeState(null); seedAdmin(); }
+  seedAdmin(); cloudReady=true; if(!data) await cloudSave(); else localCache();
+}
+async function cloudSave(){
+  if(SUPABASE_READY && cloudReady){
+    const {error}=await sb.from('rpj_state').upsert({id:'main',data:state,updated_at:new Date().toISOString()});
+    if(error) throw error;
+  }
+  localCache();
+}
+function save(){
+  cloudSave().catch(e=>{console.error(e);toast('Não foi possível salvar no banco online. Verifique sua conexão.');});
+}
+function money(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
+function dateBR(v){if(!v)return '-'; const d=new Date(v); return d.toLocaleDateString('pt-BR')}
+function nowISO(){return new Date().toISOString().slice(0,16)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function toast(t){const x=document.getElementById('toast');x.textContent=t;x.classList.remove('hidden');setTimeout(()=>x.classList.add('hidden'),2200)}
+function statusTag(s){let c=['Entregue'].includes(s)?'ready':['Cancelada'].includes(s)?'cancel':['Aguardando peça','Orçamento'].includes(s)?'wait':'open';return `<span class="tag ${c}">${esc(s)}</span>`}
+
+document.getElementById('loginForm').addEventListener('submit',async function(e){
+  e.preventDefault();
+  const u=document.getElementById('loginUser').value.trim();
+  const p=document.getElementById('loginPass').value;
+  const err=document.getElementById('loginError'); err.textContent='';
+  if(!SUPABASE_READY){
+    const found=state.users.find(x=>String(x.user||'').trim().toLowerCase()===u.toLowerCase() && String(x.pass||'')===p);
+    if(!found){err.textContent='Usuário ou senha inválidos. Use RPJ e 1234.';return;}
+    currentUser=found; sessionStorage.setItem('rpj_session',found.id); showApp(); return;
+  }
+  try{
+    const email=(u.includes('@')?u:u.toLowerCase()+'@rpj.local');
+    const {data,error}=await sb.auth.signInWithPassword({email,password:p});
+    if(error) throw error;
+    currentUser=state.users.find(x=>String(x.user||'').toLowerCase()===u.toLowerCase()) || {id:data.user.id,user:u,name:u,role:'Atendente'};
+    if(!state.users.some(x=>x.id===currentUser.id)) state.users.push(currentUser);
+    sessionStorage.setItem('rpj_session',data.user.id); cloudReady=true; await cloudSave(); showApp();
+  }catch(ex){err.textContent='Usuário ou senha inválidos, ou conta ainda não criada no Supabase.';}
+});
+async function logout(){if(SUPABASE_READY) await sb.auth.signOut();sessionStorage.removeItem('rpj_session');currentUser=null;cloudReady=false;document.getElementById('app').classList.add('hidden');document.getElementById('login').classList.remove('hidden')}
+function showApp(){document.getElementById('login').classList.add('hidden');document.getElementById('app').classList.remove('hidden');document.getElementById('currentUser').textContent=currentUser.name||currentUser.user;render()}
+save();
+async function boot(){try{if(SUPABASE_READY){const {data:{session}}=await sb.auth.getSession();if(!session){document.getElementById('login').classList.remove('hidden');return;}await cloudLoad();currentUser=state.users.find(x=>x.id===session.user.id)||{id:session.user.id,user:session.user.email?.split('@')[0]||'Usuário',name:session.user.email?.split('@')[0]||'Usuário',role:'Atendente'};showApp();}else{cloudLoad();const sid=sessionStorage.getItem('rpj_session');if(sid){currentUser=state.users.find(x=>x.id===sid)||null;if(currentUser)showApp();}}}catch(e){console.error(e);document.getElementById('loginError').textContent='Erro ao conectar ao banco online.';}}
+boot();
+
+document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{currentPage=b.dataset.page;document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x===b));render()});
+
+function render(){
+ const c=document.getElementById('content');
+ if(currentPage==='dashboard') return dashboard(c);
+ if(currentPage==='orders') return orders(c);
+ if(currentPage==='clients') return clients(c);
+ if(currentPage==='devices') return devices(c);
+ if(currentPage==='users') return users(c);
+ if(currentPage==='backup') return backup(c);
+}
+function dashboard(c){
+ let open=state.orders.filter(o=>!['Entregue','Cancelada'].includes(o.status)).length, ready=state.orders.filter(o=>o.status==='Pronta').length, revenue=state.orders.filter(o=>o.status==='Entregue').reduce((a,o)=>a+Number(o.total||0),0);
+ c.innerHTML=`<div class="page-head"><div><h2>Dashboard</h2><div class="muted">Visão geral da assistência</div></div><button class="btn primary" onclick="newOrder()">+ Abrir O.S.</button></div>
+ <div class="cards"><div class="stat"><span class="kpi">O.S. abertas</span><b>${open}</b></div><div class="stat"><span class="kpi">Prontas</span><b>${ready}</b></div><div class="stat"><span class="kpi">Clientes</span><b>${state.clients.length}</b></div><div class="stat"><span class="kpi">Total entregue</span><b>${money(revenue)}</b></div></div>
+ <div class="panel"><h3>Últimas O.S.</h3>${ordersTable(state.orders.slice().sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,8))}</div>`;
+}
+function orders(c){
+ c.innerHTML=`<div class="page-head"><div><h2>Ordens de Serviço</h2><div class="muted">Abertura, acompanhamento, fechamento e impressão</div></div><button class="btn primary" onclick="newOrder()">+ Nova O.S.</button></div>
+ <div class="panel"><div class="grid3"><div class="field"><label>Pesquisar</label><input id="orderSearch" oninput="filterOrders()" placeholder="Número, cliente, aparelho..."></div><div class="field"><label>Status</label><select id="orderStatus" onchange="filterOrders()"><option value="">Todos</option>${['Aberta','Orçamento','Aguardando peça','Em reparo','Pronta','Entregue','Cancelada'].map(x=>`<option>${x}</option>`).join('')}</select></div><div class="field"><label>Tipo</label><select id="orderType" onchange="filterOrders()"><option value="">Todos</option><option>Celular</option><option>Notebook</option><option>Computador</option><option>Videogame</option><option>Tablet</option><option>Outro</option></select></div></div></div>
+ <div class="panel" id="ordersList">${ordersTable(state.orders)}</div>`;
+}
+function ordersTable(list){
+ if(!list.length)return '<div class="empty">Nenhuma O.S. cadastrada.</div>';
+ return `<div class="table-wrap"><table class="table"><thead><tr><th>Nº</th><th>Entrada</th><th>Cliente</th><th>Aparelho</th><th>Status</th><th>Total</th><th>Ações</th></tr></thead><tbody>${list.map(o=>{let cl=state.clients.find(x=>x.id===o.clientId),d=state.devices.find(x=>x.id===o.deviceId);return `<tr><td><b>${esc(o.number)}</b></td><td>${dateBR(o.entryDate)}</td><td>${esc(cl?.name||'—')}</td><td>${esc(d?.brand||'')} ${esc(d?.model||'')}<br><span class="muted">${esc(d?.type||'')}</span></td><td>${statusTag(o.status)}</td><td>${money(o.total)}</td><td><div class="actions"><button class="btn light" onclick="editOrder('${o.id}')">Abrir</button><button class="btn light" onclick="printOrder('${o.id}','a4','entry')">Entrada A4</button><button class="btn light" onclick="printOrder('${o.id}','thermal','entry')">Entrada 80mm</button><button class="btn success" onclick="printOrder('${o.id}','a4','exit')">Saída A4</button><button class="btn secondary" onclick="closeOrder('${o.id}')">✓ Fechar</button></div></td></tr>`}).join('')}</tbody></table></div>`;
+}
+function filterOrders(){let q=document.getElementById('orderSearch').value.toLowerCase(),s=document.getElementById('orderStatus').value,t=document.getElementById('orderType').value;let list=state.orders.filter(o=>{let cl=state.clients.find(x=>x.id===o.clientId),d=state.devices.find(x=>x.id===o.deviceId),hay=[o.number,cl?.name,d?.brand,d?.model].join(' ').toLowerCase();return(!q||hay.includes(q))&&(!s||o.status===s)&&(!t||d?.type===t)});document.getElementById('ordersList').innerHTML=ordersTable(list)}
+
+function clients(c){
+ c.innerHTML=`<div class="page-head"><div><h2>Clientes</h2><div class="muted">Cadastre e consulte clientes e seus aparelhos</div></div><button class="btn primary" onclick="clientModal()">+ Cliente</button></div>
+ <div class="panel"><div class="field"><label>Pesquisar</label><input id="clientSearch" oninput="filterClients()" placeholder="Nome, telefone, CPF/CNPJ..."></div></div>
+ <div class="panel" id="clientsList">${clientsTable(state.clients)}</div>`;
+}
+function clientsTable(list){if(!list.length)return '<div class="empty">Nenhum cliente cadastrado.</div>';return `<div class="table-wrap"><table class="table"><thead><tr><th>Cliente</th><th>Telefone</th><th>CPF/CNPJ</th><th>Aparelhos</th><th>Ações</th></tr></thead><tbody>${list.map(x=>`<tr><td><b>${esc(x.name)}</b><br><span class="muted">${esc(x.email||'')}</span></td><td>${esc(x.phone||'')}</td><td>${esc(x.doc||'')}</td><td>${state.devices.filter(d=>d.clientId===x.id).length}</td><td><div class="actions"><button class="btn light" onclick="clientModal('${x.id}')">Editar</button><button class="btn light" onclick="viewClient('${x.id}')">Ver aparelhos</button></div></td></tr>`).join('')}</tbody></table></div>`}
+function filterClients(){let q=document.getElementById('clientSearch').value.toLowerCase();document.getElementById('clientsList').innerHTML=clientsTable(state.clients.filter(x=>[x.name,x.phone,x.doc,x.email].join(' ').toLowerCase().includes(q)))}
+function clientModal(id){
+ let x=state.clients.find(a=>a.id===id)||{name:'',doc:'',phone:'',email:'',address:'',notes:''};
+ openModal(`<div class="modal-head"><h2>${id?'Editar':'Novo'} cliente</h2><button class="close" onclick="closeModal()">×</button></div><form class="form" onsubmit="saveClient(event,'${id||''}')">
+ <div class="grid2"><div class="field"><label>Nome / Razão social *</label><input name="name" value="${esc(x.name)}" required></div><div class="field"><label>CPF/CNPJ</label><input name="doc" value="${esc(x.doc)}"></div><div class="field"><label>Telefone / WhatsApp</label><input name="phone" value="${esc(x.phone)}"></div><div class="field"><label>E-mail</label><input name="email" type="email" value="${esc(x.email)}"></div></div><div class="field"><label>Endereço</label><input name="address" value="${esc(x.address)}"></div><div class="field"><label>Observações</label><textarea name="notes">${esc(x.notes)}</textarea></div><button class="btn primary">Salvar cliente</button></form>`);
+}
+function saveClient(e,id){e.preventDefault();let f=new FormData(e.target),obj=Object.fromEntries(f.entries());if(id)Object.assign(state.clients.find(x=>x.id===id),obj);else state.clients.push({id:uid(),...obj});save();closeModal();render();toast('Cliente salvo.')}
+function viewClient(id){let c=state.clients.find(x=>x.id===id),ds=state.devices.filter(x=>x.clientId===id);openModal(`<div class="modal-head"><h2>${esc(c.name)}</h2><button class="close" onclick="closeModal()">×</button></div><p><b>Telefone:</b> ${esc(c.phone||'-')} &nbsp; <b>CPF/CNPJ:</b> ${esc(c.doc||'-')}</p><h3>Aparelhos</h3>${ds.length?`<table class="table"><tr><th>Tipo</th><th>Marca/Modelo</th><th>Serial/IMEI</th></tr>${ds.map(d=>`<tr><td>${esc(d.type)}</td><td>${esc(d.brand)} ${esc(d.model)}</td><td>${esc(d.serial||d.imei||'-')}</td></tr>`).join('')}</table>`:'<div class="empty">Nenhum aparelho.</div>'}`)}
+
+function devices(c){
+ c.innerHTML=`<div class="page-head"><div><h2>Aparelhos</h2><div class="muted">Histórico por cliente</div></div><button class="btn primary" onclick="deviceModal()">+ Aparelho</button></div><div class="panel"><div class="field"><label>Pesquisar</label><input id="devSearch" oninput="filterDevices()" placeholder="Cliente, IMEI, marca, modelo..."></div></div><div class="panel" id="devicesList">${devicesTable(state.devices)}</div>`;
+}
+function devicesTable(list){if(!list.length)return '<div class="empty">Nenhum aparelho cadastrado.</div>';return `<div class="table-wrap"><table class="table"><thead><tr><th>Cliente</th><th>Tipo</th><th>Marca/Modelo</th><th>Serial/IMEI</th><th>Ações</th></tr></thead><tbody>${list.map(d=>{let c=state.clients.find(x=>x.id===d.clientId);return `<tr><td>${esc(c?.name||'—')}</td><td>${esc(d.type)}</td><td>${esc(d.brand)} ${esc(d.model)}</td><td>${esc(d.serial||d.imei||'-')}</td><td><button class="btn light" onclick="deviceModal('${d.id}')">Editar</button></td></tr>`}).join('')}</tbody></table></div>`}
+function filterDevices(){let q=document.getElementById('devSearch').value.toLowerCase();document.getElementById('devicesList').innerHTML=devicesTable(state.devices.filter(d=>{let c=state.clients.find(x=>x.id===d.clientId);return [c?.name,d.type,d.brand,d.model,d.serial,d.imei].join(' ').toLowerCase().includes(q)}))}
+function deviceModal(id){
+ let x=state.devices.find(a=>a.id===id)||{clientId:'',type:'Celular',brand:'',model:'',serial:'',imei:'',color:'',condition:'',notes:''};
+ openModal(`<div class="modal-head"><h2>${id?'Editar':'Novo'} aparelho</h2><button class="close" onclick="closeModal()">×</button></div>${!state.clients.length?'<div class="empty">Cadastre um cliente primeiro.</div>':`<form class="form" onsubmit="saveDevice(event,'${id||''}')"><div class="grid2"><div class="field"><label>Cliente *</label><select name="clientId" required>${state.clients.map(c=>`<option value="${c.id}" ${x.clientId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div><div class="field"><label>Tipo *</label><select name="type">${['Celular','Notebook','Computador','Videogame','Tablet','Outro'].map(t=>`<option ${x.type===t?'selected':''}>${t}</option>`).join('')}</select></div><div class="field"><label>Marca</label><input name="brand" value="${esc(x.brand)}"></div><div class="field"><label>Modelo</label><input name="model" value="${esc(x.model)}"></div><div class="field"><label>Nº de série</label><input name="serial" value="${esc(x.serial)}"></div><div class="field"><label>IMEI</label><input name="imei" value="${esc(x.imei)}"></div><div class="field"><label>Cor</label><input name="color" value="${esc(x.color)}"></div></div><div class="field"><label>Estado/avarias na entrada</label><textarea name="condition">${esc(x.condition)}</textarea></div><div class="field"><label>Observações</label><textarea name="notes">${esc(x.notes)}</textarea></div><button class="btn primary">Salvar aparelho</button></form>`}`);
+}
+function saveDevice(e,id){e.preventDefault();let obj=Object.fromEntries(new FormData(e.target).entries());if(id)Object.assign(state.devices.find(x=>x.id===id),obj);else state.devices.push({id:uid(),...obj});save();closeModal();render();toast('Aparelho salvo.')}
+function ensureDevice(clientId){return state.devices.filter(d=>d.clientId===clientId)}
+
+function newOrder(){
+ let o={id:uid(),number:String(++state.seq),clientId:'',deviceId:'',entryDate:nowISO(),status:'Aberta',
+ entryClientName:'',entryClientDoc:'',entryClientPhone:'',entryClientEmail:'',entryClientAddress:'',
+ entryDeviceType:'Celular',entryDeviceBrand:'',entryDeviceModel:'',entryDeviceSerial:'',entryDeviceImei:'',
+ entryDeviceColor:'',entryDeviceCondition:'',
+ complaint:'',accessories:'',password:'',diagnosis:'',services:'',parts:'',labor:'0',discount:'0',
+ total:'0',payment:'',deadline:'',observations:'',createdAt:new Date().toISOString()};
+ state.orders.push(o);save();editOrder(o.id)
+}
+
+function clientOptions(selected=''){
+ return `<option value="">+ Cadastrar novo cliente nesta O.S.</option>`+
+ state.clients.map(c=>`<option value="${c.id}" ${selected===c.id?'selected':''}>${esc(c.name)}${c.phone?' — '+esc(c.phone):''}</option>`).join('');
+}
+function deviceOptions(clientId='',selected=''){
+ let ds=clientId?ensureDevice(clientId):[];
+ return `<option value="">+ Cadastrar novo aparelho nesta O.S.</option>`+
+ ds.map(d=>`<option value="${d.id}" ${selected===d.id?'selected':''}>${esc(d.brand)} ${esc(d.model)} — ${esc(d.type)}</option>`).join('');
+}
+
+function editOrder(id){
+ let o=state.orders.find(x=>x.id===id);editing=id;
+ let existingClient=state.clients.find(c=>c.id===o.clientId);
+ let existingDevice=state.devices.find(d=>d.id===o.deviceId);
+ let isNewClient=!existingClient, isNewDevice=!existingDevice;
+
+ openModal(`<div class="modal-head"><h2>O.S. #${esc(o.number)}</h2><button class="close" onclick="closeModal()">×</button></div>
+ <form class="form" onsubmit="saveOrder(event,'${id}')">
+
+ <div class="panel" style="margin:0;background:#fafafa">
+   <h3>👤 Dados do cliente</h3>
+   <div class="grid2">
+    <div class="field"><label>Cliente já cadastrado?</label>
+      <select id="oc" name="clientId" onchange="toggleEntryClient();reloadDeviceOptions()">${clientOptions(o.clientId)}</select>
+    </div>
+   </div>
+   <div id="newClientFields" class="${isNewClient?'':'hidden'}">
+    <div class="grid4">
+      <div class="field"><label>Nome / Razão social *</label><input name="entryClientName" value="${esc(o.entryClientName||'')}"></div>
+      <div class="field"><label>CPF/CNPJ</label><input name="entryClientDoc" value="${esc(o.entryClientDoc||'')}"></div>
+      <div class="field"><label>Telefone / WhatsApp</label><input name="entryClientPhone" value="${esc(o.entryClientPhone||'')}"></div>
+      <div class="field"><label>E-mail</label><input name="entryClientEmail" type="email" value="${esc(o.entryClientEmail||'')}"></div>
+    </div>
+    <div class="field"><label>Endereço</label><input name="entryClientAddress" value="${esc(o.entryClientAddress||'')}"></div>
+   </div>
+   <div id="existingClientInfo" class="${isNewClient?'hidden':''} muted" style="margin-top:8px">Cliente selecionado: <b>${esc(existingClient?.name||'')}</b> — os dados já cadastrados serão usados.</div>
+ </div>
+
+ <div class="panel" style="margin:0;background:#fafafa">
+   <h3>📱 Dados do aparelho</h3>
+   <div class="grid3">
+    <div class="field"><label>Aparelho já cadastrado?</label>
+      <select id="od" name="deviceId" onchange="toggleEntryDevice()">${deviceOptions(o.clientId,o.deviceId)}</select>
+    </div>
+   </div>
+   <div id="newDeviceFields" class="${isNewDevice?'':'hidden'}">
+    <div class="grid4">
+      <div class="field"><label>Tipo *</label><select name="entryDeviceType">${['Celular','Notebook','Computador','Videogame','Tablet','Outro'].map(t=>`<option ${((o.entryDeviceType||'Celular')===t)?'selected':''}>${t}</option>`).join('')}</select></div>
+      <div class="field"><label>Marca</label><input name="entryDeviceBrand" value="${esc(o.entryDeviceBrand||'')}"></div>
+      <div class="field"><label>Modelo</label><input name="entryDeviceModel" value="${esc(o.entryDeviceModel||'')}"></div>
+      <div class="field"><label>Nº de série</label><input name="entryDeviceSerial" value="${esc(o.entryDeviceSerial||'')}"></div>
+      <div class="field"><label>IMEI</label><input name="entryDeviceImei" value="${esc(o.entryDeviceImei||'')}"></div>
+      <div class="field"><label>Cor</label><input name="entryDeviceColor" value="${esc(o.entryDeviceColor||'')}"></div>
+    </div>
+    <div class="field"><label>Estado / avarias na entrada</label><textarea name="entryDeviceCondition">${esc(o.entryDeviceCondition||'')}</textarea></div>
+   </div>
+   <div id="existingDeviceInfo" class="${isNewDevice?'hidden':''} muted" style="margin-top:8px">Aparelho selecionado: <b>${esc(existingDevice?((existingDevice.brand||'')+' '+(existingDevice.model||'')):'')}</b>.</div>
+ </div>
+
+ <div class="grid4">
+  <div class="field"><label>Entrada</label><input name="entryDate" type="datetime-local" value="${esc(o.entryDate)}"></div>
+  <div class="field"><label>Previsão</label><input name="deadline" type="date" value="${esc(o.deadline)}"></div>
+  <div class="field"><label>Status</label><select name="status">${['Aberta','Orçamento','Aguardando peça','Em reparo','Pronta','Entregue','Cancelada'].map(st=>`<option ${o.status===st?'selected':''}>${st}</option>`).join('')}</select></div>
+  <div class="field"><label>Forma de pagamento</label><select name="payment"><option value="">—</option>${['Dinheiro','Pix','Cartão de débito','Cartão de crédito','Transferência','Outro'].map(x=>`<option ${o.payment===x?'selected':''}>${x}</option>`).join('')}</select></div>
+ </div>
+
+ <div class="field"><label>Senha/Padrão do aparelho</label><input name="password" value="${esc(o.password)}"></div>
+ <div class="grid2">
+  <div class="field"><label>Defeito / reclamação do cliente</label><textarea name="complaint">${esc(o.complaint)}</textarea></div>
+  <div class="field"><label>Acessórios entregues</label><textarea name="accessories">${esc(o.accessories)}</textarea></div>
+  <div class="field"><label>Diagnóstico técnico</label><textarea name="diagnosis">${esc(o.diagnosis)}</textarea></div>
+  <div class="field"><label>Serviços executados</label><textarea name="services">${esc(o.services)}</textarea></div>
+  <div class="field"><label>Peças / materiais</label><textarea name="parts">${esc(o.parts)}</textarea></div>
+  <div class="field"><label>Observações</label><textarea name="observations">${esc(o.observations)}</textarea></div>
+ </div>
+
+ <div class="grid3">
+  <div class="field"><label>Mão de obra (R$)</label><input name="labor" type="number" step="0.01" value="${esc(o.labor)}"></div>
+  <div class="field"><label>Desconto (R$)</label><input name="discount" type="number" step="0.01" value="${esc(o.discount)}"></div>
+  <div class="field"><label>Total (R$)</label><input name="total" type="number" step="0.01" value="${esc(o.total)}"></div>
+ </div>
+
+ <div class="actions">
+  <button class="btn primary">💾 Salvar O.S.</button>
+  <button type="button" class="btn light" onclick="printOrder('${id}','a4','entry')">Entrada A4</button>
+  <button type="button" class="btn light" onclick="printOrder('${id}','thermal','entry')">Entrada 80mm</button>
+  <button type="button" class="btn success" onclick="printOrder('${id}','a4','exit')">Saída A4</button>
+  <button type="button" class="btn success" onclick="printOrder('${id}','thermal','exit')">Saída 80mm</button>
+  <button type="button" class="btn secondary" onclick="closeOrder('${id}')">✓ Fechar O.S.</button>
+  <button type="button" class="btn danger" onclick="deleteOrder('${id}')">Excluir</button>
+ </div>
+ </form>`);
+}
+
+function toggleEntryClient(){
+ let cid=document.getElementById('oc').value;
+ document.getElementById('newClientFields').classList.toggle('hidden',!!cid);
+ document.getElementById('existingClientInfo').classList.toggle('hidden',!cid);
+}
+function toggleEntryDevice(){
+ let did=document.getElementById('od').value;
+ document.getElementById('newDeviceFields').classList.toggle('hidden',!!did);
+ document.getElementById('existingDeviceInfo').classList.toggle('hidden',!did);
+}
+function reloadDeviceOptions(){
+ let cid=document.getElementById('oc').value,sel=document.getElementById('od');
+ sel.innerHTML=deviceOptions(cid);
+ toggleEntryDevice();
+}
+
+function saveOrder(e,id){
+ e.preventDefault();
+ let obj=Object.fromEntries(new FormData(e.target).entries());
+ let o=state.orders.find(x=>x.id===id);
+
+ if(!obj.clientId){
+   let name=(obj.entryClientName||'').trim();
+   if(!name){toast('Informe o nome do cliente.');document.querySelector('[name="entryClientName"]').focus();return;}
+   let c={id:uid(),name,doc:(obj.entryClientDoc||'').trim(),phone:(obj.entryClientPhone||'').trim(),
+     email:(obj.entryClientEmail||'').trim(),address:(obj.entryClientAddress||'').trim(),notes:'',createdAt:new Date().toISOString()};
+   state.clients.push(c); obj.clientId=c.id;
+ }
+
+ if(!obj.deviceId){
+   let d={id:uid(),clientId:obj.clientId,type:(obj.entryDeviceType||'Outro').trim()||'Outro',
+     brand:(obj.entryDeviceBrand||'').trim(),model:(obj.entryDeviceModel||'').trim(),
+     serial:(obj.entryDeviceSerial||'').trim(),imei:(obj.entryDeviceImei||'').trim(),
+     color:(obj.entryDeviceColor||'').trim(),condition:(obj.entryDeviceCondition||obj.complaint||'').trim(),notes:''};
+   state.devices.push(d); obj.deviceId=d.id;
+ }
+
+ Object.assign(o,obj);
+ save();closeModal();render();
+ toast('O.S. salva! Cliente e aparelho foram cadastrados automaticamente.');
+}
+function closeOrder(id){
+ let o=state.orders.find(x=>x.id===id);
+ if(!o)return;
+ if(o.status==='Entregue'){toast('Esta O.S. já está fechada.');return;}
+ if(!confirm('Deseja fechar esta O.S.? Ela ficará como Entregue e poderá ser impressa como saída.'))return;
+ o.status='Entregue';
+ o.closedAt=new Date().toISOString();
+ save();closeModal();render();
+ toast('O.S. fechada com sucesso!');
+}
+function deleteOrder(id){if(confirm('Excluir esta O.S.?')){state.orders=state.orders.filter(x=>x.id!==id);save();closeModal();render();toast('O.S. excluída.')}}
+
+function users(c){
+ if(currentUser.role!=='Administrador'){
+   c.innerHTML='<div class="panel"><h2>Acesso restrito</h2><p>Somente administradores podem gerenciar usuários.</p></div>';
+   return;
+ }
+ const rows=state.users.map(u=>{
+   const action=u.id===currentUser.id ? 'Atual' : `<button class="btn danger" onclick="deleteUser('${u.id}')">Excluir</button>`;
+   return `<tr><td><b>${esc(u.user)}</b></td><td>${esc(u.name)}</td><td>${esc(u.role)}</td><td>${action}</td></tr>`;
+ }).join('');
+ c.innerHTML=`<div class="page-head"><div><h2>Usuários</h2><div class="muted">Controle de acesso ao sistema</div></div><button class="btn primary" onclick="userModal()">+ Usuário</button></div><div class="panel"><table class="table"><tr><th>Usuário</th><th>Nome</th><th>Perfil</th><th>Ações</th></tr>${rows}</table></div>`;
+}
+function userModal(){openModal(`<div class="modal-head"><h2>Novo usuário</h2><button class="close" onclick="closeModal()">×</button></div><form class="form" onsubmit="saveUser(event)"><div class="grid2"><div class="field"><label>Usuário *</label><input name="user" required></div><div class="field"><label>Senha *</label><input name="pass" required></div><div class="field"><label>Nome</label><input name="name"></div><div class="field"><label>Perfil</label><select name="role"><option>Atendente</option><option>Administrador</option></select></div></div><button class="btn primary">Cadastrar</button></form>`)}
+async function saveUser(e){e.preventDefault();let o=Object.fromEntries(new FormData(e.target).entries());if(state.users.some(u=>u.user.toLowerCase()===o.user.toLowerCase()))return toast('Usuário já existe.');if(SUPABASE_READY){try{const email=(o.user.includes('@')?o.user:o.user.toLowerCase()+'@rpj.local');const {error}=await sb.auth.signUp({email,password:o.pass});if(error)throw error;state.users.push({id:uid(),user:o.user,name:o.name||o.user,role:o.role});await cloudSave();closeModal();render();toast('Usuário criado no Supabase.');}catch(ex){toast('Não foi possível criar o usuário: '+(ex.message||'erro'));}}else{state.users.push({id:uid(),...o});save();closeModal();render();toast('Usuário cadastrado.')}}
+function deleteUser(id){if(confirm('Excluir usuário?')){state.users=state.users.filter(x=>x.id!==id);save();render()}}
+
+function backup(c){
+ c.innerHTML=`<div class="page-head"><div><h2>Backup / Dados</h2><div class="muted">Os dados são salvos no banco online Supabase quando o sistema está configurado. O navegador mantém apenas um cache local para ajudar na continuidade.</div></div></div>
+ <div class="panel"><h3>Salvar backup em arquivo</h3><p>Baixe um arquivo JSON com clientes, aparelhos, O.S. e usuários. Guarde esse arquivo para restauração ou transferência.</p><button class="btn primary" onclick="exportData()">⬇ Exportar backup .json</button></div>
+ <div class="panel"><h3>Restaurar backup</h3><p>Selecione um backup JSON criado por este sistema.</p><input id="importFile" type="file" accept=".json,application/json" onchange="importData(event)"></div>
+ <div class="panel"><h3>Limpeza</h3><p class="muted">Use com cuidado: remove o cache local deste navegador. Para apagar o banco online, faça isso pelo painel do Supabase.</p><button class="btn danger" onclick="resetData()">Apagar todos os dados</button></div>
+ <div class="panel"><h3>Como os dados são guardados?</h3><p>Com o Supabase configurado, o banco online é a fonte principal dos dados. O backup JSON continua disponível para segurança e restauração.</p></div>`;
+}
+function exportData(){let blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='RPJ-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href);toast('Backup exportado.')}
+function importData(e){let file=e.target.files[0];if(!file)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.users||!x.clients||!x.orders)throw Error();localStorage.setItem(KEY,JSON.stringify(x));location.reload()}catch{toast('Backup inválido.')}};r.readAsText(file)}
+function resetData(){if(confirm('ATENÇÃO: isso apagará o cache local deste navegador. Continuar?')){localStorage.removeItem(KEY);location.reload()}}
+
+function openModal(html){document.getElementById('modalCard').innerHTML=html;document.getElementById('modal').classList.remove('hidden')}
+function closeModal(){document.getElementById('modal').classList.add('hidden');document.getElementById('modalCard').innerHTML=''}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()})
+
+function printOrder(id,format='a4',kind='entry'){
+ let o=state.orders.find(x=>x.id===id),c=state.clients.find(x=>x.id===o.clientId),d=state.devices.find(x=>x.id===o.deviceId);
+ let title=kind==='entry'?'COMPROVANTE DE ENTRADA — ORDEM DE SERVIÇO':'COMPROVANTE DE SAÍDA — ORDEM DE SERVIÇO';
+ let html=`<div class="print-preview ${format==='thermal'?'print-thermal':''}"><div class="print-head"><img src="assets/logo-rpj.jpeg"><div><div class="print-title">${title}</div><div>O.S. Nº <b>${esc(o.number)}</b></div></div></div>
+ <div class="print-grid"><div class="print-row"><div class="print-label">Cliente</div><div class="print-value">${esc(c?.name||'-')}</div></div><div class="print-row"><div class="print-label">Telefone</div><div class="print-value">${esc(c?.phone||'-')}</div></div><div class="print-row"><div class="print-label">Aparelho</div><div class="print-value">${esc(d?.type||'')} — ${esc(d?.brand||'')} ${esc(d?.model||'')}</div></div><div class="print-row"><div class="print-label">Serial / IMEI</div><div class="print-value">${esc(d?.serial||d?.imei||'-')}</div></div><div class="print-row"><div class="print-label">Entrada</div><div class="print-value">${dateBR(o.entryDate)} ${new Date(o.entryDate).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div></div><div class="print-row"><div class="print-label">Status</div><div class="print-value">${esc(o.status)}</div></div></div>
+ <div class="print-section"><b>Defeito / reclamação</b><div>${esc(o.complaint||'-').replace(/\\n/g,'<br>')}</div></div>
+ <div class="print-section"><b>Acessórios</b><div>${esc(o.accessories||'-').replace(/\\n/g,'<br>')}</div></div>
+ ${kind==='exit'?`<div class="print-section"><b>Diagnóstico</b><div>${esc(o.diagnosis||'-').replace(/\\n/g,'<br>')}</div></div><div class="print-section"><b>Serviços executados</b><div>${esc(o.services||'-').replace(/\\n/g,'<br>')}</div></div><div class="print-section"><b>Peças / materiais</b><div>${esc(o.parts||'-').replace(/\\n/g,'<br>')}</div></div><div class="print-section"><b>Pagamento</b><div>${esc(o.payment||'-')}</div></div><div class="print-total">TOTAL: ${money(o.total)}</div>`:''}
+ <div class="print-section"><b>Observações</b><div>${esc(o.observations||'-').replace(/\\n/g,'<br>')}</div></div>
+ <div class="signature"><div>Responsável pela assistência</div><div>Cliente</div></div><p style="font-size:9px;margin-top:18px">Documento gerado pelo RPJ Gestão de O.S.</p></div>`;
+ let w=window.open('','_blank','width=900,height=900');if(!w)return toast('Permita pop-ups para imprimir.');w.document.write(`<html><head><title>O.S. ${esc(o.number)}</title><style>${document.querySelector('style').innerHTML}</style></head><body class="print-${format}">${html}<script>window.onload=()=>{window.print()}<\/script></body></html>`);w.document.close();
+}
+</script>
+</body></html>
