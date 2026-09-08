@@ -72,18 +72,24 @@ textarea{min-height:90px;resize:vertical}.btn{border:0;border-radius:9px;padding
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // CONFIGURAÇÃO SUPABASE — substitua pelos dados do seu projeto.
-const SUPABASE_URL = window.RPJ_SUPABASE_URL || 'COLOQUE_AQUI_A_URL_DO_SUPABASE';
-const SUPABASE_ANON_KEY = window.RPJ_SUPABASE_ANON_KEY || 'COLOQUE_AQUI_A_CHAVE_ANON';
+const SUPABASE_URL = window.RPJ_SUPABASE_URL || 'https://syfuavljlohogjzulrlz.supabase.co';
+const SUPABASE_ANON_KEY = window.RPJ_SUPABASE_ANON_KEY || 'sb_publishable_adtGtwhW1xJErBwCy5-Mpg_K-qgqb3k';
 const SUPABASE_READY = !SUPABASE_URL.includes('COLOQUE_AQUI') && !SUPABASE_ANON_KEY.includes('COLOQUE_AQUI');
 const sb = SUPABASE_READY ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-const KEY='rpj_gestao_os_v6';
+const KEY='rpj_gestao_os_v7';
 let state={users:[],clients:[],devices:[],orders:[],seq:1000};
 let currentUser=null, currentPage='dashboard', editing=null;
 let cloudReady=false;
+let cloudBase=null;
+let cloudSaveInFlight=null;
+let cloudDirty=false;
 
 function uid(){
   if(window.crypto && typeof window.crypto.randomUUID==='function') return window.crypto.randomUUID();
   return 'rpj-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
+}
+function cloneState(x){
+  return JSON.parse(JSON.stringify(normalizeState(x)));
 }
 function localCache(){ try { localStorage.setItem(KEY,JSON.stringify(state)); } catch(e){} }
 function normalizeState(x){
@@ -97,27 +103,99 @@ function seedAdmin(){
   if(!state.users.some(u=>String(u.user||'').toLowerCase()==='rpj'))
     state.users.unshift({id:uid(),user:'RPJ',name:'RPJ',role:'Administrador'});
 }
+function sameJson(a,b){return JSON.stringify(a)===JSON.stringify(b)}
+function mergeCollection(base, local, remote){
+  const bm=new Map((base||[]).map(x=>[x.id,x]));
+  const lm=new Map((local||[]).map(x=>[x.id,x]));
+  const rm=new Map((remote||[]).map(x=>[x.id,x]));
+  const ids=new Set([...bm.keys(),...lm.keys(),...rm.keys()]);
+  const out=[];
+  for(const id of ids){
+    const b=bm.get(id), l=lm.get(id), r=rm.get(id);
+    const localChanged = !sameJson(l,b);
+    const remoteChanged = !sameJson(r,b);
+    let chosen;
+    if(localChanged && !remoteChanged) chosen=l;
+    else if(!localChanged && remoteChanged) chosen=r;
+    else if(localChanged && remoteChanged) chosen=l;
+    else chosen=r;
+    if(chosen!==undefined) out.push(chosen);
+  }
+  return out;
+}
+function mergeStates(base, local, remote){
+  base=normalizeState(base); local=normalizeState(local); remote=normalizeState(remote);
+  return normalizeState({
+    users:mergeCollection(base.users,local.users,remote.users),
+    clients:mergeCollection(base.clients,local.clients,remote.clients),
+    devices:mergeCollection(base.devices,local.devices,remote.devices),
+    orders:mergeCollection(base.orders,local.orders,remote.orders),
+    seq:Math.max(Number(base.seq)||1000,Number(local.seq)||1000,Number(remote.seq)||1000)
+  });
+}
+async function fetchCloudState(){
+  const {data,error}=await sb.from('rpj_state').select('data,updated_at').eq('id','main').maybeSingle();
+  if(error) throw error;
+  return data && data.data ? normalizeState(data.data) : null;
+}
 async function cloudLoad(){
   if(!SUPABASE_READY){
     try { state=normalizeState(JSON.parse(localStorage.getItem(KEY)||'null')); } catch(e){ state=normalizeState(null); }
-    seedAdmin(); localCache(); return;
+    seedAdmin(); localCache(); cloudReady=false; cloudBase=null; return;
   }
   const {data:{session}}=await sb.auth.getSession();
-  if(!session) return;
-  const {data,error}=await sb.from('rpj_state').select('data').eq('id','main').maybeSingle();
-  if(error) throw error;
-  if(data && data.data) state=normalizeState(data.data); else { state=normalizeState(null); seedAdmin(); }
-  seedAdmin(); cloudReady=true; if(!data) await cloudSave(); else localCache();
-}
-async function cloudSave(){
-  if(SUPABASE_READY && cloudReady){
-    const {error}=await sb.from('rpj_state').upsert({id:'main',data:state,updated_at:new Date().toISOString()});
-    if(error) throw error;
+  if(!session){ cloudReady=false; return; }
+  const remote=await fetchCloudState();
+  if(remote){
+    state=cloneState(remote);
+    cloudBase=cloneState(remote);
+  }else{
+    state=normalizeState(null); seedAdmin();
+    cloudBase=cloneState(state);
+    await cloudSave();
+    return;
   }
+  seedAdmin();
+  cloudReady=true;
   localCache();
 }
+async function cloudSave(){
+  if(!SUPABASE_READY){ localCache(); return; }
+  if(!cloudReady) throw new Error('Banco online ainda não foi carregado.');
+  if(cloudSaveInFlight) await cloudSaveInFlight;
+  cloudSaveInFlight=(async()=>{
+    const remote=await fetchCloudState();
+    const base=cloudBase||remote||normalizeState(null);
+    const merged=mergeStates(base,state,remote||base);
+    state=merged;
+    const {data,error}=await sb.from('rpj_state').upsert({id:'main',data:state,updated_at:new Date().toISOString()}).select('data').single();
+    if(error) throw error;
+    state=normalizeState(data.data);
+    cloudBase=cloneState(state);
+    localCache();
+    cloudDirty=false;
+  })();
+  try{ await cloudSaveInFlight; } finally { cloudSaveInFlight=null; }
+}
+async function saveAndConfirm(successMessage){
+  cloudDirty=true;
+  try{
+    await cloudSave();
+    if(successMessage) toast(successMessage);
+    return true;
+  }catch(e){
+    console.error(e);
+    localCache();
+    toast('ERRO: não foi possível salvar no banco online. Nada foi confirmado como salvo.');
+    return false;
+  }
+}
 function save(){
-  cloudSave().catch(e=>{console.error(e);toast('Não foi possível salvar no banco online. Verifique sua conexão.');});
+  cloudDirty=true;
+  localCache();
+  if(SUPABASE_READY && cloudReady){
+    cloudSave().catch(e=>{console.error(e);toast('ERRO: falha ao sincronizar com o banco online.');});
+  }
 }
 function money(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
 function dateBR(v){if(!v)return '-'; const d=new Date(v); return d.toLocaleDateString('pt-BR')}
@@ -140,15 +218,19 @@ document.getElementById('loginForm').addEventListener('submit',async function(e)
     const email=(u.includes('@')?u:u.toLowerCase()+'@rpj.local');
     const {data,error}=await sb.auth.signInWithPassword({email,password:p});
     if(error) throw error;
+    await cloudLoad();
     currentUser=state.users.find(x=>String(x.user||'').toLowerCase()===u.toLowerCase()) || {id:data.user.id,user:u,name:u,role:'Atendente'};
-    if(!state.users.some(x=>x.id===currentUser.id)) state.users.push(currentUser);
-    sessionStorage.setItem('rpj_session',data.user.id); cloudReady=true; await cloudSave(); showApp();
+    if(!state.users.some(x=>x.id===currentUser.id)){
+      state.users.push(currentUser);
+      await saveAndConfirm();
+    }
+    sessionStorage.setItem('rpj_session',data.user.id); showApp();
   }catch(ex){err.textContent='Usuário ou senha inválidos, ou conta ainda não criada no Supabase.';}
 });
 async function logout(){if(SUPABASE_READY) await sb.auth.signOut();sessionStorage.removeItem('rpj_session');currentUser=null;cloudReady=false;document.getElementById('app').classList.add('hidden');document.getElementById('login').classList.remove('hidden')}
 function showApp(){document.getElementById('login').classList.add('hidden');document.getElementById('app').classList.remove('hidden');document.getElementById('currentUser').textContent=currentUser.name||currentUser.user;render()}
 save();
-async function boot(){try{if(SUPABASE_READY){const {data:{session}}=await sb.auth.getSession();if(!session){document.getElementById('login').classList.remove('hidden');return;}await cloudLoad();currentUser=state.users.find(x=>x.id===session.user.id)||{id:session.user.id,user:session.user.email?.split('@')[0]||'Usuário',name:session.user.email?.split('@')[0]||'Usuário',role:'Atendente'};showApp();}else{cloudLoad();const sid=sessionStorage.getItem('rpj_session');if(sid){currentUser=state.users.find(x=>x.id===sid)||null;if(currentUser)showApp();}}}catch(e){console.error(e);document.getElementById('loginError').textContent='Erro ao conectar ao banco online.';}}
+async function boot(){try{if(SUPABASE_READY){const {data:{session}}=await sb.auth.getSession();if(!session){document.getElementById('login').classList.remove('hidden');return;}await cloudLoad();currentUser=state.users.find(x=>String(x.user||'').toLowerCase()===(session.user.email?.split('@')[0]||'').toLowerCase())||{id:session.user.id,user:session.user.email?.split('@')[0]||'Usuário',name:session.user.email?.split('@')[0]||'Usuário',role:'Atendente'};showApp();}else{await cloudLoad();const sid=sessionStorage.getItem('rpj_session');if(sid){currentUser=state.users.find(x=>x.id===sid)||null;if(currentUser)showApp();}}}catch(e){console.error(e);document.getElementById('loginError').textContent='Erro ao conectar ao banco online.';}}
 boot();
 
 document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{currentPage=b.dataset.page;document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x===b));render()});
@@ -191,7 +273,7 @@ function clientModal(id){
  openModal(`<div class="modal-head"><h2>${id?'Editar':'Novo'} cliente</h2><button class="close" onclick="closeModal()">×</button></div><form class="form" onsubmit="saveClient(event,'${id||''}')">
  <div class="grid2"><div class="field"><label>Nome / Razão social *</label><input name="name" value="${esc(x.name)}" required></div><div class="field"><label>CPF/CNPJ</label><input name="doc" value="${esc(x.doc)}"></div><div class="field"><label>Telefone / WhatsApp</label><input name="phone" value="${esc(x.phone)}"></div><div class="field"><label>E-mail</label><input name="email" type="email" value="${esc(x.email)}"></div></div><div class="field"><label>Endereço</label><input name="address" value="${esc(x.address)}"></div><div class="field"><label>Observações</label><textarea name="notes">${esc(x.notes)}</textarea></div><button class="btn primary">Salvar cliente</button></form>`);
 }
-function saveClient(e,id){e.preventDefault();let f=new FormData(e.target),obj=Object.fromEntries(f.entries());if(id)Object.assign(state.clients.find(x=>x.id===id),obj);else state.clients.push({id:uid(),...obj});save();closeModal();render();toast('Cliente salvo.')}
+async function saveClient(e,id){e.preventDefault();let f=new FormData(e.target),obj=Object.fromEntries(f.entries());if(id)Object.assign(state.clients.find(x=>x.id===id),obj);else state.clients.push({id:uid(),...obj});if(await saveAndConfirm('Cliente salvo.')){closeModal();render();}}
 function viewClient(id){let c=state.clients.find(x=>x.id===id),ds=state.devices.filter(x=>x.clientId===id);openModal(`<div class="modal-head"><h2>${esc(c.name)}</h2><button class="close" onclick="closeModal()">×</button></div><p><b>Telefone:</b> ${esc(c.phone||'-')} &nbsp; <b>CPF/CNPJ:</b> ${esc(c.doc||'-')}</p><h3>Aparelhos</h3>${ds.length?`<table class="table"><tr><th>Tipo</th><th>Marca/Modelo</th><th>Serial/IMEI</th></tr>${ds.map(d=>`<tr><td>${esc(d.type)}</td><td>${esc(d.brand)} ${esc(d.model)}</td><td>${esc(d.serial||d.imei||'-')}</td></tr>`).join('')}</table>`:'<div class="empty">Nenhum aparelho.</div>'}`)}
 
 function devices(c){
@@ -203,7 +285,7 @@ function deviceModal(id){
  let x=state.devices.find(a=>a.id===id)||{clientId:'',type:'Celular',brand:'',model:'',serial:'',imei:'',color:'',condition:'',notes:''};
  openModal(`<div class="modal-head"><h2>${id?'Editar':'Novo'} aparelho</h2><button class="close" onclick="closeModal()">×</button></div>${!state.clients.length?'<div class="empty">Cadastre um cliente primeiro.</div>':`<form class="form" onsubmit="saveDevice(event,'${id||''}')"><div class="grid2"><div class="field"><label>Cliente *</label><select name="clientId" required>${state.clients.map(c=>`<option value="${c.id}" ${x.clientId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div><div class="field"><label>Tipo *</label><select name="type">${['Celular','Notebook','Computador','Videogame','Tablet','Outro'].map(t=>`<option ${x.type===t?'selected':''}>${t}</option>`).join('')}</select></div><div class="field"><label>Marca</label><input name="brand" value="${esc(x.brand)}"></div><div class="field"><label>Modelo</label><input name="model" value="${esc(x.model)}"></div><div class="field"><label>Nº de série</label><input name="serial" value="${esc(x.serial)}"></div><div class="field"><label>IMEI</label><input name="imei" value="${esc(x.imei)}"></div><div class="field"><label>Cor</label><input name="color" value="${esc(x.color)}"></div></div><div class="field"><label>Estado/avarias na entrada</label><textarea name="condition">${esc(x.condition)}</textarea></div><div class="field"><label>Observações</label><textarea name="notes">${esc(x.notes)}</textarea></div><button class="btn primary">Salvar aparelho</button></form>`}`);
 }
-function saveDevice(e,id){e.preventDefault();let obj=Object.fromEntries(new FormData(e.target).entries());if(id)Object.assign(state.devices.find(x=>x.id===id),obj);else state.devices.push({id:uid(),...obj});save();closeModal();render();toast('Aparelho salvo.')}
+async function saveDevice(e,id){e.preventDefault();let obj=Object.fromEntries(new FormData(e.target).entries());if(id)Object.assign(state.devices.find(x=>x.id===id),obj);else state.devices.push({id:uid(),...obj});if(await saveAndConfirm('Aparelho salvo.')){closeModal();render();}}
 function ensureDevice(clientId){return state.devices.filter(d=>d.clientId===clientId)}
 
 function newOrder(){
@@ -213,7 +295,7 @@ function newOrder(){
  entryDeviceColor:'',entryDeviceCondition:'',
  complaint:'',accessories:'',password:'',diagnosis:'',services:'',parts:'',labor:'0',discount:'0',
  total:'0',payment:'',deadline:'',observations:'',createdAt:new Date().toISOString()};
- state.orders.push(o);save();editOrder(o.id)
+ state.orders.push(o); localCache(); editOrder(o.id)
 }
 
 function clientOptions(selected=''){
@@ -326,7 +408,7 @@ function reloadDeviceOptions(){
  toggleEntryDevice();
 }
 
-function saveOrder(e,id){
+async function saveOrder(e,id){
  e.preventDefault();
  let obj=Object.fromEntries(new FormData(e.target).entries());
  let o=state.orders.find(x=>x.id===id);
@@ -348,20 +430,18 @@ function saveOrder(e,id){
  }
 
  Object.assign(o,obj);
- save();closeModal();render();
- toast('O.S. salva! Cliente e aparelho foram cadastrados automaticamente.');
+ if(await saveAndConfirm('O.S. salva! Cliente e aparelho foram cadastrados automaticamente.')){closeModal();render();}
 }
-function closeOrder(id){
+async function closeOrder(id){
  let o=state.orders.find(x=>x.id===id);
  if(!o)return;
  if(o.status==='Entregue'){toast('Esta O.S. já está fechada.');return;}
  if(!confirm('Deseja fechar esta O.S.? Ela ficará como Entregue e poderá ser impressa como saída.'))return;
  o.status='Entregue';
  o.closedAt=new Date().toISOString();
- save();closeModal();render();
- toast('O.S. fechada com sucesso!');
+ if(await saveAndConfirm('O.S. fechada com sucesso!')){closeModal();render();}
 }
-function deleteOrder(id){if(confirm('Excluir esta O.S.?')){state.orders=state.orders.filter(x=>x.id!==id);save();closeModal();render();toast('O.S. excluída.')}}
+async function deleteOrder(id){if(confirm('Excluir esta O.S.?')){state.orders=state.orders.filter(x=>x.id!==id);if(await saveAndConfirm('O.S. excluída.')){closeModal();render();}}}
 
 function users(c){
  if(currentUser.role!=='Administrador'){
